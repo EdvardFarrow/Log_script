@@ -7,6 +7,7 @@ import numpy as np
 import os
 import datetime
 import shutil
+import configparser
 
 # Функция для удаления старых логов
 def clean_old_logs(log_dir, days=3):
@@ -23,6 +24,11 @@ def clean_old_logs(log_dir, days=3):
             except ValueError:
                 logging.warning(f'Пропущен файл с неправильным именем: {file_path}')
 
+
+# Чтение конфигурационного файла
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 # Настройка логирования
 log_dir = 'logs'
 os.makedirs(log_dir, exist_ok=True)
@@ -30,6 +36,7 @@ clean_old_logs(log_dir)
 
 log_filename = datetime.datetime.now().strftime('%Y-%m-%d') + '.log'
 log_path = os.path.join(log_dir, log_filename)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,17 +47,14 @@ logging.basicConfig(
     ]
 )
 
+
 def get_url():
-    api_url = "https://b2b.itresume.ru/api/statistics"
-    client = 'Skillfactory'
-    client_key = 'M2MGWS'
-    start_date = '2023-02-01'
-    end_date = '2023-02-07'
+    api_url = config['API']['api_url']
     params = {
-        'client': client,
-        'client_key': client_key,
-        'start': start_date,
-        'end': end_date
+        'client': config['API']['client'],
+        'client_key': config['API']['client_key'],
+        'start': config['API']['start_date'],
+        'end': config['API']['end_date']
     }
 
     logging.info('Скачивание данных из API началось')
@@ -72,6 +76,7 @@ def get_url():
 
     return None
 
+
 def expand_passback_params(params):
     if params is None:
         return {}
@@ -82,10 +87,12 @@ def expand_passback_params(params):
         params_dict = {}
     return params_dict
 
+
 def process_boolean(value):
     if pd.isna(value):
         return None
     return bool(value)
+
 
 logging.info('Получение данных началось')
 data = get_url()
@@ -116,11 +123,11 @@ else:
 logging.info('Вставка данных в базу данных началась')
 try:
     conn = psycopg2.connect(
-        dbname='bp',
-        user='edfarrow',
-        password='1',
-        host='localhost',
-        port='5432'
+        dbname=config['DATABASE']['dbname'],
+        user=config['DATABASE']['user'],
+        password=config['DATABASE']['password'],
+        host=config['DATABASE']['host'],
+        port=config['DATABASE']['port']
     )
     cur = conn.cursor()
 
